@@ -1,6 +1,6 @@
 # Working on this repo
 
-An Android Auto app that opens physical barriers. Read [README.md](README.md)
+An Android Auto app that opens physical barriers. Read [README.en.md](README.en.md)
 for what it is and how it talks to the vendor. This file is the things that are
 easy to get wrong.
 
@@ -54,7 +54,7 @@ can never forge it.
 This needs [UnknownAuto](https://github.com/GitMag/UnknownAuto) installed on the
 phone with `REQUEST_INSTALL_PACKAGES` granted — it stages the APK behind a
 `content://` URI the system installer can read, which `adb` cannot do. Setup is
-in [README.md](README.md#you-need-unknownauto). Two steps need a human at the
+in [README.en.md](README.en.md#you-need-unknownauto). Two steps need a human at the
 phone, so this cannot run unattended.
 
 The full reasoning, the failure modes and what each wrong field means are in

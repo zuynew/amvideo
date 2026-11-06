@@ -42,7 +42,7 @@ UnknownAuto (`com.mag.unknownauto`) is needed only to stage the APK behind a
 cannot serve such a URI, which is the whole reason a second app is involved.
 
 **Prerequisite.** If it is not installed, stop and point the user at
-[README.md](../../../README.md#you-need-unknownauto) rather than installing
+[README.en.md](../../../README.en.md#you-need-unknownauto) rather than installing
 third-party software on their phone unasked. Check with:
 
 ```bash
@@ -118,4 +118,4 @@ instead of restarting the app.
   That matters: the store holds the session token and **logins are rate-limited
   per day**. Never uninstall to fix this.
 - Not a supported path. Google can close it. For anything beyond this one phone,
-  use Play Internal App Sharing — see README.md.
+  use Play Internal App Sharing — see README.en.md.

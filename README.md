@@ -1,323 +1,332 @@
 # АМВИДЕО Авто
 
-Opens your gate or front door (КПУ) from the car, through Android Auto.
+Открывает шлагбаум или дверь (КПУ) прямо из машины, через Android Auto.
 
-*[Русская версия](README.ru.md)*
+*[English version](README.en.md)*
 
-AM Video ships a phone app, but reaching for the phone at a barrier is the
-problem. This is an Android Auto app in Google's `IOT` category — the category
-whose documented example is, word for word, opening a garage door — so the gate
-sits on the car's screen as a tile you tap once.
+У АМВИДЕО есть своё приложение для телефона, но тянуться за телефоном перед
+шлагбаумом — и есть та самая проблема. Это приложение для Android Auto в
+категории `IOT` — той самой, у которой в документации Google в качестве примера
+прямым текстом указано открытие гаражных ворот, — так что КПУ появляется на
+экране машины плиткой, по которой достаточно нажать один раз.
 
-Sign-in happens in the companion phone app, because Android Auto will not put a
-login form in front of a driver. That app lists and opens your КПУ too.
+Вход выполняется в приложении на телефоне: Android Auto не станет показывать
+форму входа водителю. Оттуда же можно посмотреть список КПУ и открыть любой из
+них.
 
-> **Unofficial.** This project is not affiliated with, endorsed by, or supported
-> by AM Video. It talks to their service the same way their own web client does,
-> using your own account. You are responsible for your own account and for
-> whatever terms apply to it. It opens physical barriers, and one tap on the car
-> screen is all it takes — there is no confirmation step, by design, because a
-> second interaction while driving is worse.
+> **Неофициальное.** Проект никак не связан с АМВИДЕО, не одобрен и не
+> поддерживается компанией. Он обращается к их сервису ровно так же, как это
+> делает их собственный веб-клиент, и под вашей учётной записью. Вы сами
+> отвечаете за свой аккаунт и за условия, которые к нему применяются.
+> Приложение открывает физические преграды, и для этого достаточно одного
+> нажатия на экране машины: подтверждения нет намеренно — второе действие за
+> рулём хуже.
 
-## How it talks to AM Video
+## Как оно общается с АМВИДЕО
 
-There is no public API. The contract below was read off the vendor's own web
-client (`https://lk.amvideo-msk.ru/app/js/app.js`), which is a Cordova wrapper
-around a single PHP endpoint:
+Публичного API нет. Описанный ниже контракт снят с их собственного веб-клиента
+(`https://lk.amvideo-msk.ru/app/js/app.js`) — это обёртка Cordova вокруг
+единственной PHP-точки:
 
-    POST https://lk.amvideo-msk.ru/api/api4.php      (form-encoded, JSON back)
+    POST https://lk.amvideo-msk.ru/api/api4.php   (form-encoded, в ответ JSON)
 
-| `type`   | fields sent                                      | answer |
-|----------|--------------------------------------------------|--------|
-| `login`  | `login` (11 digits), `password`, `device_key`, `pin` | `result`, `sid`, `str`, `change_device` |
-| `pin`    | `login`, `pin_type` (`device`), `sms` (`0`, then `1`) | `str` |
-| `panels` | `sid`                                            | `result`, `data[]` of `{id_shlag, adress, relay, gps, cam}` |
-| `open`   | `sid`, `id_shlag`, `relay`                       | `str`, sometimes `result` |
+| `type`   | что отправляем                                        | ответ |
+|----------|-------------------------------------------------------|-------|
+| `login`  | `login` (11 цифр), `password`, `device_key`, `pin`    | `result`, `sid`, `str`, `change_device` |
+| `pin`    | `login`, `pin_type` (`device`), `sms` (`0`, потом `1`) | `str` |
+| `panels` | `sid`                                                  | `result`, `data[]` из `{id_shlag, adress, relay, gps, cam}` |
+| `open`   | `sid`, `id_shlag`, `relay`                             | `str`, иногда `result` |
 
-Three things about this endpoint shape the app:
+Четыре особенности этой точки определяют устройство приложения:
 
-- **`device_key` must never change.** It is a UUID the client invents once. The
-  server ties the account to it and demands a fresh PIN whenever it sees a new
-  one, so it is generated at first launch and kept for good — it even survives
-  signing out.
-- **A PIN is never sent on its own.** A login that comes back `change_device`
-  only says a PIN is needed; the client has to ask for one with `type=pin`.
-  The first delivery can be a voice call, and asking again with `sms=1` forces
-  an SMS. The vendor allows one request every three minutes, and the app keeps
-  the same wait.
-- **There are no status codes.** An expired session comes back as nothing more
-  than `result:false` with the message `нет доступа!`, so that text is what the
-  app matches on to decide a session needs renewing.
-- **Fields change type.** The same column arrives as `1`, `"1"` or `true`
-  depending on which branch of the PHP answered, so every flag goes through a
-  lenient reader and panel rows are mapped from raw JSON rather than typed up
-  front. A type change on the server should not crash the app at the gate.
+- **`device_key` нельзя менять.** Это UUID, который клиент придумывает один раз.
+  Сервер привязывает к нему аккаунт и требует новый ПИН, как только видит
+  другой, — поэтому он генерируется при первом запуске и хранится навсегда, и
+  переживает даже выход из аккаунта.
+- **ПИН никогда не приходит сам.** Ответ `change_device` на вход означает лишь
+  то, что ПИН нужен; запросить его клиент обязан отдельно, через `type=pin`.
+  Первая доставка может оказаться голосовым звонком, повторный запрос с `sms=1`
+  принудительно шлёт СМС. Вендор разрешает один запрос раз в три минуты — то же
+  ограничение соблюдает и приложение.
+- **Кодов состояния нет.** Истёкшая сессия приходит всего лишь как
+  `result:false` с текстом `нет доступа!`, поэтому именно по этой строке
+  приложение понимает, что сессию пора обновить.
+- **Типы полей плавают.** Одно и то же поле приходит как `1`, `"1"` или `true` —
+  зависит от того, какая ветка PHP ответила. Поэтому каждый флаг проходит через
+  «снисходительный» парсер, а строки панелей разбираются из сырого JSON, а не
+  раскладываются в типы заранее. Смена типа на сервере не должна ронять
+  приложение у шлагбаума.
 
-## How it is put together
+## Как оно устроено
 
-One Gradle module, three packages, and one object that matters.
+Один модуль Gradle, несколько пакетов и один объект, который по-настоящему
+важен.
 
-    data/      AmVideoApi (seam) + HttpAmVideoApi (OkHttp), KeystoreStore,
-               DoorRepository, Door, ApiModels, Proximity, Geo
+    data/      AmVideoApi (точка подмены) + HttpAmVideoApi (OkHttp),
+               KeystoreStore, DoorRepository, Door, ApiModels, Proximity, Geo
     car/       DoorCarAppService, DoorSession, DoorScreen
     phone/     MainActivity, MainViewModel, SignInScreen, DoorsScreen
     proximity/ DoorProximityService, ProximityNotifier, OpenDoorReceiver,
                BootReceiver
-    ui/        Notice — one wording of a result, shared by both screens
-    diag/      InstallSource — reports how this copy was installed
+    ui/        Notice — единая формулировка результата для обоих экранов
+    diag/      InstallSource — сообщает, как именно установлена эта копия
 
-`DoorRepository` is the only place that knows how to open a door, and the phone
-and the car share a single instance of it. That is the whole point of the
-design: it is what makes these three behaviours hold no matter which screen the
-driver last touched.
+`DoorRepository` — единственное место, которое умеет открывать дверь, и телефон
+с машиной делят один его экземпляр. В этом весь смысл конструкции: именно так
+три следующих поведения работают независимо от того, с какого экрана водитель
+пришёл.
 
-- **A 20-second cooldown**, matching the vendor client's own button lockout, so
-  the car cannot hammer the gate. A request that never reached the server does
-  not start it.
-- **Silent session renewal.** When the server says the session is gone, the
-  repository signs in again with the stored credentials and retries the call
-  once. Without this, a car that has sat for a week would show an empty grid
-  until the driver picked up the phone — which is exactly the moment this app is
-  supposed to save.
-- **A cached door list**, so a tile is tappable the instant Android Auto
-  connects instead of after a network round trip.
+- **Задержка в 20 секунд**, такая же, как блокировка кнопки в клиенте вендора,
+  чтобы из машины нельзя было задолбить шлагбаум. Запрос, не дошедший до
+  сервера, её не запускает.
+- **Тихое обновление сессии.** Когда сервер отвечает, что сессии больше нет,
+  репозиторий заново входит с сохранёнными данными и один раз повторяет вызов.
+  Без этого машина, простоявшая неделю, показала бы пустую сетку до тех пор,
+  пока водитель не возьмёт телефон, — а это ровно тот момент, который
+  приложение и должно экономить.
+- **Кэш списка дверей**, чтобы плитка нажималась сразу при подключении Android
+  Auto, а не после похода в сеть.
 
-Results are returned as named outcomes rather than UI text, so each screen words
-things itself — except messages the server already wrote in Russian, which are
-passed through untouched.
+Результаты возвращаются именованными исходами, а не готовым текстом: каждый
+экран формулирует их сам. Исключение — сообщения, которые сервер уже написал
+по-русски: они проходят насквозь без изменений.
 
-### Where the password lives
+### Где лежит пароль
 
-Renewing a session silently means keeping the password, so it is encrypted with
-an AES-256-GCM key held in the Android keystore, in app-private preferences.
-This is done by hand because Jetpack Security's `EncryptedSharedPreferences` was
-deprecated in favour of plain, unencrypted preferences, which is not a
-reasonable place for the password to your front door.
+Тихое обновление сессии означает, что пароль приходится хранить. Он шифруется
+ключом AES-256-GCM из Android Keystore и лежит в приватных настройках
+приложения. Это сделано вручную, потому что `EncryptedSharedPreferences` из
+Jetpack Security объявлен устаревшим в пользу обычных, нешифрованных настроек —
+а это неподходящее место для пароля от вашей входной двери.
 
-The keystore key cannot leave the device, so `allowBackup="false"` is set rather
-than let the app carry ciphertext it will never be able to read to a new phone.
-A value that fails to decrypt is treated as absent: that costs one sign-in
-instead of leaving the app wedged.
+Ключ из Keystore не покидает устройство, поэтому выставлен
+`allowBackup="false"`: лучше так, чем тащить на новый телефон шифротекст,
+который там всё равно не прочитается. Значение, которое не расшифровалось,
+считается отсутствующим — это стоит одного входа вместо намертво сломанного
+приложения.
 
-## Build
+## Сборка
 
-Needs JDK 17+ and the Android SDK with platform 37 and build-tools 37. Point
-`local.properties` at your SDK (`sdk.dir=/path/to/android-sdk`), or set
-`ANDROID_HOME`; Android Studio writes `local.properties` for you on first open.
+Нужны JDK 17+ и Android SDK с platform 37 и build-tools 37. Укажите SDK в
+`local.properties` (`sdk.dir=/путь/к/android-sdk`) или задайте `ANDROID_HOME`;
+Android Studio создаёт `local.properties` сама при первом открытии.
 
-There are two product flavours, because Android Auto and Android Automotive OS
-need different host libraries that cannot ship in one APK. `mobile` is the
-Android Auto one and is almost certainly what you want.
+Есть два флейвора: Android Auto и Android Automotive OS требуют разные
+host-библиотеки, которые не уживаются в одном APK. `mobile` — это Android Auto,
+и почти наверняка нужен именно он.
 
 ```bash
 ./gradlew :app:assembleMobileDebug
 ```
 
-The APK lands at `app/build/outputs/apk/mobile/debug/app-mobile-debug.apk`.
+APK появится в `app/build/outputs/apk/mobile/debug/app-mobile-debug.apk`.
 
 ```bash
 ./gradlew :app:testMobileDebugUnitTest :app:lintMobileDebug
 ```
 
-65 unit tests cover the repository's cooldown, session renewal and caching, the
-proximity maths, the lenient JSON reading and the install-provenance rule. They
-run on the JVM against a fake API and a fake store, so no device or network is
-needed. Lint runs with `warningsAsErrors`.
+65 модульных тестов покрывают задержку, обновление сессии и кэш в репозитории,
+расчёт расстояний, «снисходительный» разбор JSON и правило проверки источника
+установки. Они выполняются на JVM против поддельных API и хранилища, так что ни
+устройство, ни сеть не нужны. Lint запускается с `warningsAsErrors`.
 
-## Install it on the phone
+## Установка на телефон
 
 ```bash
 adb install -r app/build/outputs/apk/mobile/debug/app-mobile-debug.apk
 ```
 
-This is enough for the phone app. It is **not** enough to reach a car — see
-[Getting it onto the car screen](#getting-it-onto-the-car-screen), and note that
-a plain `adb install` actively undoes it.
+Этого достаточно для приложения на телефоне. Этого **не** достаточно, чтобы оно
+появилось в машине — смотрите [Как вывести его на экран
+машины](#как-вывести-его-на-экран-машины). Более того, обычный `adb install`
+эту возможность активно ломает.
 
-Open **АМВИДЕО Авто** on the phone and sign in with the phone number and
-password you use for the AM Video app. The first sign-in on a new device will
-ask for a PIN: a **Запросить ПИН** button and a field appear when the server
-says the device is new. Tap the button to have the code sent — nothing arrives
-until you do — then type it in and sign in.
+Откройте **АМВИДЕО Авто** на телефоне и войдите с тем же номером и паролем, что
+и в приложении АМВИДЕО. При первом входе с нового устройства потребуется ПИН:
+кнопка **Запросить ПИН** и поле появляются, когда сервер сообщает, что
+устройство новое. Нажмите кнопку, чтобы код отправили, — сам он не придёт, —
+затем введите его и войдите.
 
-The phone app works fully on its own — it lists your КПУ and opens them.
+Приложение на телефоне самодостаточно: оно показывает список КПУ и открывает их.
 
-## Getting it onto the car screen
+## Как вывести его на экран машины
 
-**A sideloaded build will not appear in a real car.** Android Auto has a
-developer option called *Unknown sources*, but
-[Google's testing docs](https://developer.android.com/training/cars/testing) are
-explicit that it
+**Сайдлоад не появится в настоящей машине.** У Android Auto есть опция для
+разработчика — *Неизвестные источники*, — но
+[документация Google по тестированию](https://developer.android.com/training/cars/testing)
+прямо говорит, что она
 
-> applies to media, messaging notifications, and parked apps but doesn't apply
-> to apps built using the Android for Cars App Library.
+> применяется к медиа, уведомлениям мессенджеров и приложениям для стоянки, но
+> не применяется к приложениям, собранным на Android for Cars App Library.
 
-and that "to test your app in real vehicles, you must install it from a trusted
-source such as Google Play". This app is a Car App Library app, so that toggle
-is not the answer and no manifest flag is either.
+и что «для тестирования в настоящих автомобилях приложение нужно устанавливать
+из доверенного источника, например из Google Play». Это приложение как раз на
+Car App Library, так что переключатель не поможет — и никакой флаг в манифесте
+тоже.
 
-This is why the app can show nothing on a real head unit even though the same
-build renders correctly in the Automotive emulator and the DHU. The
-manifest is not at fault; the installer is. Which is also the way out — what
-the host rejects is the *install record*, and that can be changed two ways.
+Именно поэтому на настоящем головном устройстве может не появиться ничего, хотя
+та же сборка нормально рисуется в эмуляторе Automotive и в DHU. Виноват не
+манифест, а установщик. В этом же и выход: хост отвергает *запись об
+установке*, а её можно изменить двумя способами.
 
-### Free route: a Play-attributed local install
+### Бесплатный путь: локальная установка с атрибуцией Play
 
-Android Auto reads **two** fields and needs both:
+Android Auto читает **два** поля, и нужны оба:
 
-| field | must be | set by |
+| поле | должно быть | кем ставится |
 | --- | --- | --- |
-| `initiatingPackageName` | the system package installer, or Play | the system, from the real caller |
-| `installerPackageName` | `com.android.vending` | the installer, from an intent extra |
+| `initiatingPackageName` | системный установщик пакетов или Play | системой, по реальному вызывающему |
+| `installerPackageName` | `com.android.vending` | установщиком, из extra в интенте |
 
-`adb install -i com.android.vending` sets only the second. The first is filled
-in by the system and cannot be forged, so a sideload is always
-`com.android.shell`. This was confirmed in a real car: with the installing
-package matching that of apps genuinely installed from Play, the launcher still
-enumerated every other car app on the phone and ours was not among them.
+`adb install -i com.android.vending` задаёт только второе. Первое подставляет
+система, и подделать его нельзя — у сайдлоада там всегда `com.android.shell`.
+Это подтвердилось в настоящей машине: пакет-установщик совпадал с тем, что у
+приложений, действительно поставленных из Play, а лаунчер всё равно перечислил
+все остальные автомобильные приложения телефона — и нашего среди них не было.
 
-The way through is to let the **system installer** perform the install, so it
-becomes the initiator, while the **shell** launches it — some Android 17 builds
-drop the Play name when an app launches it — with the attribution passed as
-extras.
+Путь наружу — дать установку выполнить **системному установщику**, чтобы
+инициатором стал он, а запустить его из **shell** (часть сборок Android 17
+теряет отметку Play, если установщик запускает приложение), передав атрибуцию
+через extra.
 
-#### You need UnknownAuto
+#### Понадобится UnknownAuto
 
-The system installer will only install from a `content://` URI it is allowed to
-read, and `adb` cannot serve one: a `file://` path in `/sdcard` is not readable
-by the installer, and nothing on the shell side can grant it. That one gap is
-why a second app is involved.
+Системный установщик берёт APK только по `content://`-URI, который ему
+разрешено читать, а `adb` такой URI предоставить не может: путь `file://` в
+`/sdcard` установщику недоступен, и выдать ему права со стороны шелла нечем.
+Ровно из-за этого разрыва в схеме появляется второе приложение.
 
-[UnknownAuto](https://github.com/GitMag/UnknownAuto) fills it. It stages an APK
-behind its own content provider and grants the system installer read access —
-and that is the whole of its role here. It does **not** perform the install in
-this flow; the shell does, which is what keeps the Play attribution on this
-phone.
+Его закрывает [UnknownAuto](https://github.com/GitMag/UnknownAuto). Оно кладёт
+APK за свой content-провайдер и выдаёт системному установщику доступ на чтение
+— и этим его роль здесь исчерпывается. Саму установку в этой схеме оно **не**
+выполняет: её запускает шелл, и именно это сохраняет атрибуцию Play на данном
+телефоне.
 
-Install it once, from its [releases](https://github.com/GitMag/UnknownAuto/releases):
+Поставьте его один раз, со
+[страницы релизов](https://github.com/GitMag/UnknownAuto/releases):
 
 ```bash
 adb install -r UnknownAuto-1.3.apk
 ```
 
-It needs permission to install packages, which you can grant from the shell
-instead of hunting through Settings:
+Ему нужно право устанавливать пакеты — его можно выдать из шелла, не копаясь в
+настройках:
 
 ```bash
 adb shell appops set com.mag.unknownauto REQUEST_INSTALL_PACKAGES allow
 ```
 
-Revoke it later with `deny` in place of `allow`.
+Отозвать потом — тем же вызовом с `deny` вместо `allow`.
 
-It is third-party software that asks for the right to install apps, so it is
-worth a look before you trust it. Its source is three Java files, its release
-APK declares four permissions — install packages, query packages, the Shizuku
-API and internet — and the only hosts in its binary are Shizuku's GitHub
-releases, a Ko-fi link and a Play Store URL. No telemetry. That is consistent
-with what it claims, though it is self-signed with no reproducible build, so the
-binary cannot be proven to match the source.
+Это стороннее приложение, которое просит право устанавливать другие приложения,
+так что перед доверием к нему есть смысл посмотреть, что внутри. Исходники —
+три Java-файла; релизный APK объявляет четыре разрешения (установка пакетов,
+запрос списка пакетов, API Shizuku и интернет); единственные адреса в бинарнике
+— релизы Shizuku на GitHub, ссылка на Ko-fi и URL Play Маркета. Телеметрии нет.
+Всё это сходится с заявленным назначением, но подпись самодельная и сборка не
+воспроизводимая, так что доказать соответствие бинарника исходникам нельзя.
 
-Its README offers a Shizuku-based path as well. **On Android 17 you do not need
-Shizuku** — that route is for Android 14 and older. There the mark
-survives only when the shell launches the installer, which `adb` does directly.
+В его README описан ещё и путь через Shizuku. **На Android 17 Shizuku не
+нужен** — тот путь для Android 14 и старее. Там отметка выживает
+только когда установщик запускает шелл, а это `adb` делает напрямую.
 
-#### Running the install
+#### Сама установка
 
 ```bash
 ./tools/install-for-car.sh
 ```
 
-The script pushes the APK, waits while you load it in UnknownAuto, launches the
-system installer from the shell, and prints the verdict; `push`, `install` and
-`verify` run the phases separately. Two steps happen on the phone:
+Скрипт заливает APK, ждёт, пока вы загрузите его в UnknownAuto, запускает
+системный установщик из шелла и печатает вердикт; фазы `push`, `install` и
+`verify` можно запускать по отдельности. Два шага делаются на телефоне:
 
-1. In **UnknownAuto**, tap **Load APK…** and pick `Download/amvideo-auto.apk`.
-   **Do not tap UnknownAuto's own Install button** — that makes the app the
-   launcher, and the phone then records
-   `installer=com.google.android.packageinstaller` and the icon stays missing.
-   Wait for *Ready* and let the script continue.
-2. Tap **Install** in the system dialog the script raises.
+1. В **UnknownAuto** нажмите **Load APK…** и выберите
+   `Download/amvideo-auto.apk`. **Не нажимайте кнопку Install в самом
+   UnknownAuto** — тогда запускающим окажется приложение, телефон запишет
+   `installer=com.google.android.packageinstaller`, и значок так и не появится.
+   Дождитесь *Ready* и дайте скрипту продолжить.
+2. Нажмите **Установить** в системном диалоге, который поднимет скрипт.
 
-The script refuses to push an APK older than the sources, so a stale build
-cannot cost you the whole tap-through.
+Скрипт откажется заливать APK старше исходников, так что устаревшая сборка не
+будет стоить вам всей процедуры с нажатиями.
 
-Claude Code has the same thing as a skill — `/install-for-car` — which carries
-the reasoning above so it does not regress to `adb install`. Verified on
-Android 17:
+В Claude Code то же самое доступно как навык `/install-for-car` — он несёт с
+собой все рассуждения выше, чтобы не скатиться обратно к `adb install`.
+Проверено на Android 17:
 
 ```
 initiating=com.google.android.packageinstaller installing=com.android.vending androidAutoWouldAccept=true
 ```
 
-**The mark is per-install.** Every rebuild resets it, so this is the install
-command from now on — a plain `adb install` puts the app back out of the car.
+**Отметка действует только для конкретной установки.** Каждая пересборка её
+сбрасывает, так что это и есть команда установки с этого момента: обычный
+`adb install` снова убирает приложение из машины.
 
-Because neither field is readable from a shell (`dumpsys package` prints only
-the installing one and `cmd package` has no install-source subcommand), the app
-reports them itself at startup:
+Поскольку ни одно из двух полей не прочитать из шелла (`dumpsys package`
+печатает только второе, а у `cmd package` нет подкоманды про источник
+установки), приложение сообщает их само при запуске:
 
 ```bash
 adb logcat -d -s AmVideoInstall
 ```
 
-### Paid route: Play, for distribution
+### Платный путь: Play, для распространения
 
-Google's own page names the two ways around Play review:
+Google сама называет два способа обойти проверку в Play:
 
-> You can use Internal App Sharing or an Internal Test Track to distribute your
-> app to devices without going through the Google Play review process.
+> Чтобы раздать приложение на устройства без прохождения проверки Google Play,
+> можно использовать Internal App Sharing или Internal Test Track.
 
-Both need a Play developer account (one-time $25), and they are the only route
-that works for anyone other than you. **Internal App Sharing** is the lighter
-one — no store listing, no review, no tester list.
+Для обоих нужен аккаунт разработчика Play (однократные $25), и это единственный
+путь, который сработает для кого-то, кроме вас. **Internal App Sharing** легче:
+без карточки в магазине, без проверки, без списка тестировщиков.
 
-### Internal App Sharing, start to finish
+### Internal App Sharing, по шагам
 
-The signed artifacts are built and ready:
+Подписанные артефакты собираются так:
 
 ```bash
 ./gradlew :app:assembleMobileRelease :app:bundleMobileRelease
 ```
 
-They land in `app/build/outputs/apk/mobile/release/` and
-`app/build/outputs/bundle/mobileRelease/`; copies of the current pair sit in the
-project root as `amvideo-auto-release.apk` and `amvideo-auto-release.aab`. Then:
+Они появятся в `app/build/outputs/apk/mobile/release/` и
+`app/build/outputs/bundle/mobileRelease/`. Дальше:
 
-1. Create a Play developer account at
-   [play.google.com/console](https://play.google.com/console) ($25, one-time).
-2. In the Play Console, open **Internal app sharing** and upload
-   `amvideo-auto-release.aab`. No listing, no review — you get a share link.
-3. On the phone, turn on internal app sharing in the **Play Store** app:
-   **Settings → About → Play Store version**, tap it seven times, then
-   **Settings → General → Internal app sharing** on.
-4. Uninstall the sideloaded build first. It is signed with a different key, so
-   the Play install will refuse to replace it.
-5. Open the share link on the phone and install. The installer is now the Play
-   Store, which is what Android Auto checks.
-6. Plug into the car. If the icon is still missing, check the app is ticked in
-   **Android Auto settings → Customize launcher** on the phone.
+1. Заведите аккаунт разработчика на
+   [play.google.com/console](https://play.google.com/console) ($25, однократно).
+2. В Play Console откройте **Internal app sharing** и загрузите `.aab`. Ни
+   карточки, ни проверки — вы получаете ссылку.
+3. На телефоне включите internal app sharing в приложении **Play Маркет**:
+   **Настройки → О приложении → Версия Play Маркета**, нажать семь раз, затем
+   **Настройки → Общие → Internal app sharing**.
+4. Сначала удалите сайдлоад-сборку. Она подписана другим ключом, и установка из
+   Play откажется её заменить.
+5. Откройте ссылку на телефоне и установите. Установщиком теперь выступает Play
+   Маркет — именно это и проверяет Android Auto.
+6. Подключитесь к машине. Если значка всё ещё нет, проверьте галочку в
+   **настройках Android Auto → Настроить меню** на телефоне.
 
-### Signing
+### Подпись
 
-`keystore.properties` and `amvideo-upload.jks` hold the upload key. Both are
-gitignored and neither is in the repo. **Back them up together** — losing both
-means no further updates under the same Play listing. The key is RSA-4096 and
-valid to 2054.
+`keystore.properties` и `amvideo-upload.jks` хранят ключ загрузки. Оба в
+`.gitignore`, в репозитории их нет. **Делайте резервную копию обоих вместе** —
+потеряв их, вы не сможете выпускать обновления под той же карточкой в Play.
 
-If `keystore.properties` is missing, no release signing config is created and
-release builds come out unsigned; debug builds and tests are unaffected.
+Если `keystore.properties` отсутствует, конфигурация подписи релиза просто не
+создаётся и релизные сборки выходят неподписанными; на debug-сборки и тесты это
+не влияет.
 
-## Try it in the Desktop Head Unit
+## Проверка в Desktop Head Unit
 
-The DHU lives at `$ANDROID_HOME/extras/google/auto/`; install it from the SDK
-Manager as *Android Auto Desktop Head Unit emulator* if it is not there.
+DHU лежит в `$ANDROID_HOME/extras/google/auto/`; если его там нет, поставьте из
+SDK Manager как *Android Auto Desktop Head Unit emulator*.
 
-First enable Android Auto developer mode on the phone: open the **Android Auto**
-settings, scroll to **Version and permission info** and tap it ten times, then
-confirm. Developer options appear in the **⋮** menu — choose **Start head unit
-server** there.
+Сначала включите режим разработчика в Android Auto на телефоне: откройте
+настройки **Android Auto**, пролистайте до **Сведения о версии и разрешениях** и
+нажмите десять раз, затем подтвердите. Пункты для разработчика появятся в меню
+**⋮** — там выберите **Запустить сервер головного устройства**.
 
-Then, with the phone connected by USB:
+Затем, с телефоном на USB:
 
 ```bash
 adb forward tcp:5277 tcp:5277
@@ -327,12 +336,12 @@ adb forward tcp:5277 tcp:5277
 $ANDROID_HOME/extras/google/auto/desktop-head-unit
 ```
 
-The car screen opens on the desktop, with the app in its launcher.
+На компьютере откроется экран машины, и приложение будет в его меню.
 
-## Licence
+## Лицензия
 
 [MIT](LICENSE).
 
-The API contract documented above was read from the vendor's own publicly served
-web client. Nothing here circumvents authentication: every call needs your own
-account's credentials or session.
+Контракт API, описанный выше, снят с публично отдаваемого веб-клиента вендора.
+Ничто здесь не обходит аутентификацию: каждый вызов требует учётных данных или
+сессии вашего собственного аккаунта.
