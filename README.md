@@ -331,9 +331,12 @@ The car screen opens on the desktop, with the app in its launcher.
 
 ## Worth knowing
 
-- **Arrival watching is off until you turn it on.** The switch lives on the phone's
-  door list, below the permission card. Once on, the watcher is armed at boot and
-  follows the car connection itself — you do not have to open the app first.
+- **Arrival watching is off until you turn it on.** The switch — *Открывать КПУ
+  при подъезде* — is the first card on the phone's door list. Before location
+  and notification permissions are granted, a card asking for them stands in its
+  place instead; the switch appears once both are in. Once on, the watcher is
+  armed at boot and follows the car connection itself — you do not have to open
+  the app first.
   It holds a standing notification for as long as it is armed, which is the price
   of being ready without being asked; the same switch turns it off.
 - **`panels` is confirmed against live data; `open` is not.** The door list,
