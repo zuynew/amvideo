@@ -2,6 +2,8 @@
 
 Opens your gate or front door (КПУ) from the car, through Android Auto.
 
+*[Русская версия](README.ru.md)*
+
 AM Video ships a phone app, but reaching for the phone at a barrier is the
 problem. This is an Android Auto app in Google's `IOT` category — the category
 whose documented example is, word for word, opening a garage door — so the gate
@@ -55,10 +57,14 @@ Three things about this endpoint shape the app:
 
 One Gradle module, three packages, and one object that matters.
 
-    data/    AmVideoApi (seam) + HttpAmVideoApi (OkHttp), KeystoreStore,
-             DoorRepository, Door, ApiModels
-    car/     DoorCarAppService, DoorSession, DoorScreen
-    phone/   MainActivity, MainViewModel, SignInScreen, DoorsScreen
+    data/      AmVideoApi (seam) + HttpAmVideoApi (OkHttp), KeystoreStore,
+               DoorRepository, Door, ApiModels, Proximity, Geo
+    car/       DoorCarAppService, DoorSession, DoorScreen
+    phone/     MainActivity, MainViewModel, SignInScreen, DoorsScreen
+    proximity/ DoorProximityService, ProximityNotifier, OpenDoorReceiver,
+               BootReceiver
+    ui/        Notice — one wording of a result, shared by both screens
+    diag/      InstallSource — reports how this copy was installed
 
 `DoorRepository` is the only place that knows how to open a door, and the phone
 and the car share a single instance of it. That is the whole point of the
@@ -121,8 +127,12 @@ needed. Lint runs with `warningsAsErrors`.
 ## Install it on the phone
 
 ```bash
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/mobile/debug/app-mobile-debug.apk
 ```
+
+This is enough for the phone app. It is **not** enough to reach a car — see
+[Getting it onto the car screen](#getting-it-onto-the-car-screen), and note that
+a plain `adb install` actively undoes it.
 
 Open **АМВИДЕО Авто** on the phone and sign in with the phone number and
 password you use for the AM Video app. The first sign-in on a new device will
@@ -246,9 +256,8 @@ release builds come out unsigned; debug builds and tests are unaffected.
 
 ## Try it in the Desktop Head Unit
 
-The DHU is already installed at
-`$ANDROID_HOME/extras/google/auto/` (install it from the SDK Manager as
-*Android Auto Desktop Head Unit emulator* if it is not there).
+The DHU lives at `$ANDROID_HOME/extras/google/auto/`; install it from the SDK
+Manager as *Android Auto Desktop Head Unit emulator* if it is not there.
 
 First enable Android Auto developer mode on the phone: open the **Android Auto**
 settings, scroll to **Version and permission info** and tap it ten times, then
@@ -265,7 +274,7 @@ adb forward tcp:5277 tcp:5277
 $ANDROID_HOME/extras/google/auto/desktop-head-unit
 ```
 
-The car screen opens on the Mac, with the app in its launcher.
+The car screen opens on the desktop, with the app in its launcher.
 
 ## Worth knowing
 
@@ -287,9 +296,10 @@ The car screen opens on the Mac, with the app in its launcher.
   Both the grid and the list are capped by the host's own content limit, which
   is around six while driving. With a long list the phone can still open any of
   them; paging the car screen would be the fix if it ever matters.
-- **The panel rows carry `gps` and `cam` that the app ignores.** Sorting the
-  grid by proximity, or showing the gate camera, would build on data the server
-  already sends.
+- **Panel rows carry a `cam` field the app ignores.** Showing the gate camera
+  would build on data the server already sends. The `gps` and `latitude`/
+  `longitude` columns are used — they are where the arrival geofence gets its
+  coordinates, with no map SDK involved.
 
 ## Licence
 
