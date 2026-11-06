@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Extra declarations for head units that run Android Automotive OS, where the
+  app is installed in the car rather than projected from a phone.
+
+  The car's launcher starts CarAppActivity, which hands off to the same
+  DoorCarAppService and so draws exactly the same grid as Android Auto does.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-feature
+        android:name="android.hardware.type.automotive"
+        android:required="true" />
+    <uses-feature
+        android:name="android.software.car.templates_host"
+        android:required="true" />
+
+    <application>
+
+        <!-- The Automotive OS counterpart of the Android Auto metadata. -->
+        <meta-data
+            android:name="com.android.automotive"
+            android:resource="@xml/automotive_app_desc" />
+
+        <activity
+            android:name="androidx.car.app.activity.CarAppActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Templates are built to the car's distraction rules, so the grid
+                 stays usable while driving. -->
+            <meta-data
+                android:name="distractionOptimized"
+                android:value="true" />
+        </activity>
+    </application>
+</manifest>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The account file is encrypted with a keystore key that cannot leave this
+  device, so copying it anywhere else only yields ciphertext nothing can read —
+  while the device key inside it would make a new phone look like the one the
+  server already trusts, and skip the SMS PIN.
+
+  allowBackup="false" stops cloud backup, but on Android 12 and higher it does
+  not stop device-to-device transfer, which is what this file is for.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="." />
+    </device-transfer>
+</data-extraction-rules>

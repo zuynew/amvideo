@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">АМВИДЕО Авто</string>
+
+    <!-- Phone: sign-in -->
+    <string name="sign_in_title">Вход в АМВИДЕО</string>
+    <string name="sign_in_hint">Войдите один раз здесь — в машине откроется список КПУ.</string>
+    <string name="phone_label">Телефон</string>
+    <string name="password_label">Пароль</string>
+    <string name="password_show">Показать</string>
+    <string name="password_hide">Скрыть</string>
+    <string name="pin_label">ПИН из СМС</string>
+    <string name="pin_hint">Это новое устройство, поэтому нужен код из СМС.</string>
+    <string name="pin_request_action">Запросить ПИН</string>
+    <string name="pin_sent">ПИН отправлен</string>
+    <string name="pin_cooldown">Запросить ПИН можно раз в 3 минуты — подождите %1$d с</string>
+    <string name="sign_in_action">Войти</string>
+    <string name="token_sign_in_show">Войти по токену сессии</string>
+    <string name="token_sign_in_hide">Обычный вход</string>
+    <string name="token_label">Токен сессии</string>
+    <string name="token_hint">Скопируйте его с устройства, где вы уже вошли. Вход не расходуется.</string>
+    <string name="token_sign_in_action">Войти по токену</string>
+    <string name="token_card_title">Токен сессии</string>
+    <string name="token_hidden">••••••••••••••••</string>
+    <string name="token_copy">Копировать</string>
+    <string name="sign_out_action">Выйти</string>
+    <string name="cancel_action">Отмена</string>
+    <string name="phone_invalid">Введите номер из 11 цифр</string>
+
+    <!-- Phone: doors -->
+    <string name="doors_title">Мои КПУ</string>
+    <string name="open_action">Открыть</string>
+    <string name="refresh_action">Обновить</string>
+    <string name="no_doors">КПУ не найдены</string>
+    <string name="sign_out_confirm_title">Выйти из аккаунта?</string>
+    <string name="sign_out_confirm_text">Пароль будет удалён с устройства. Из машины войти снова не получится — только здесь.</string>
+
+    <!-- Car -->
+    <string name="car_doors_title">Мои КПУ</string>
+    <string name="car_sign_in_required">Войдите в приложение АМВИДЕО на телефоне, чтобы открывать КПУ из машины.</string>
+    <string name="car_no_doors">К вашему аккаунту не привязано ни одного КПУ.</string>
+    <string name="car_retry">Повторить</string>
+    <string name="car_opening">Открываю…</string>
+    <string name="car_nearby_title">Вы подъехали</string>
+    <string name="car_show_all">Все КПУ</string>
+    <string name="distance_meters">%1$d м</string>
+
+    <!-- Arrival watching -->
+    <string name="proximity_arrival_channel">Подъезд к КПУ</string>
+    <string name="proximity_watching_channel">Отслеживание КПУ</string>
+    <string name="proximity_watching">Слежу за подъездом к КПУ</string>
+    <string name="proximity_armed">Жду подключения к машине</string>
+    <string name="arrival_switch">Открывать КПУ при подъезде</string>
+    <string name="arrival_switch_hint">В машине нужный КПУ покажется сам. Требуется геолокация и постоянное уведомление.</string>
+    <string name="proximity_arrived">В %1$d м — нажмите, чтобы открыть</string>
+    <string name="permission_location_title">Открывать КПУ при подъезде</string>
+    <string name="permission_location_text">Разрешите доступ к геолокации — тогда в машине нужный КПУ покажется сам, когда вы подъедете.</string>
+    <string name="permission_grant">Разрешить</string>
+
+    <!-- Shared results -->
+    <string name="open_sent">Команда отправлена</string>
+    <string name="open_cooldown">Повторное открытие через %1$d с</string>
+    <string name="error_network">Нет связи с сервером</string>
+    <string name="error_session">Сессия истекла — войдите снова на телефоне</string>
+    <string name="error_device_changed">Аккаунт привязан к другому устройству — запросите ПИН и войдите заново</string>
+    <string name="error_unknown">Ошибка на сервере</string>
+    <string name="error_server">Сервер ответил: %1$s</string>
+    <string name="busy">Выполняется…</string>
+</resources>

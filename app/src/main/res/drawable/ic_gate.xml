@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A barrier (шлагбаум): post, base and raised boom. Single colour so the car
+     host can tint it to whatever the head unit's theme needs. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFF">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M4,5h3v15H4z M2,20h7v2H2z M7,7h14v3H7z" />
+</vector>
