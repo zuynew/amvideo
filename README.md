@@ -339,10 +339,12 @@ The car screen opens on the desktop, with the app in its launcher.
   the app first.
   It holds a standing notification for as long as it is armed, which is the price
   of being ready without being asked; the same switch turns it off.
-- **`panels` is confirmed against live data; `open` is not.** The door list,
-  its `latitude`/`longitude` columns and `shlag_adress` were all read back from
-  the real account, which is where the geofence coordinates come from. `open`
-  has deliberately never been called in testing — it physically opens a gate.
+- **`open` actuates a physical barrier, so nothing automated calls it.** The
+  unit tests run against a fake API and the diagnostics stick to reads. The
+  endpoint works — it is what the app does all day — it is simply not something
+  to fire off to check a change. The door list, its `latitude`/`longitude`
+  columns and `shlag_adress` were read back from a live account, which is where
+  the geofence gets its coordinates.
 - **The release build is signed with the upload key**, not the debug key. The two
   cannot replace each other on a phone — uninstall before switching between them.
 - **One tap opens the gate.** That was deliberate — a confirmation step is a
