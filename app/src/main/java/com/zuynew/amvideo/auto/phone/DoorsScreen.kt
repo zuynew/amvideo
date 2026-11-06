@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -35,6 +34,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +48,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.zuynew.amvideo.auto.R
 import com.zuynew.amvideo.auto.data.Door
 import com.zuynew.amvideo.auto.proximity.DoorProximityService
@@ -65,6 +69,7 @@ fun DoorsScreen(
     ShowNotice(state.notice, snackbarHostState, onNoticeShown)
 
     var confirmSignOut by rememberSaveable { mutableStateOf(false) }
+    var arrivalGranted by rememberArrivalPermissions()
 
     Scaffold(
         topBar = {
@@ -93,8 +98,13 @@ fun DoorsScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    arrivalPermissionCard()
-                    item { ArrivalSwitch(state.arrivalEnabled, onArrivalEnabled) }
+                    // Exactly one of these: the card until both permissions are
+                    // in, the switch afterwards.
+                    if (arrivalGranted) {
+                        item { ArrivalSwitch(state.arrivalEnabled, onArrivalEnabled) }
+                    } else {
+                        item { ArrivalPermissionCard(onGranted = { arrivalGranted = true }) }
+                    }
                     item { SessionTokenCard(state.sessionToken) }
 
                     items(state.doors, key = { it.key }) { door ->
@@ -143,7 +153,32 @@ fun DoorsScreen(
     }
 }
 
-private fun LazyListScope.arrivalPermissionCard() = item { ArrivalPermissionCard() }
+/**
+ * Whether the arrival feature has what it needs, as state both cards can read.
+ *
+ * Re-read on every resume, because a permission change does not come back
+ * through this screen: the driver can grant in the card's own dialog, or wander
+ * off to system settings and revoke. `checkSelfPermission` is a plain call, not
+ * snapshot state, so without this nothing would recompose — the card would
+ * vanish on granting and the switch would not appear in its place until the app
+ * was restarted.
+ */
+@Composable
+private fun rememberArrivalPermissions(): MutableState<Boolean> {
+    val context = LocalContext.current
+    val granted = remember { mutableStateOf(hasArrivalPermissions(context)) }
+    val owner = LocalLifecycleOwner.current
+    DisposableEffect(owner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                granted.value = hasArrivalPermissions(context)
+            }
+        }
+        owner.lifecycle.addObserver(observer)
+        onDispose { owner.lifecycle.removeObserver(observer) }
+    }
+    return granted
+}
 
 /**
  * The off switch. The watcher holds a standing notification for as long as it is
@@ -151,9 +186,6 @@ private fun LazyListScope.arrivalPermissionCard() = item { ArrivalPermissionCard
  */
 @Composable
 private fun ArrivalSwitch(enabled: Boolean, onChange: (Boolean) -> Unit) {
-    val context = LocalContext.current
-    if (!hasArrivalPermissions(context)) return
-
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -181,17 +213,14 @@ private fun ArrivalSwitch(enabled: Boolean, onChange: (Boolean) -> Unit) {
 /**
  * Asks for what the arrival prompt needs, which the driver can only grant here:
  * Android Auto will not put a permission dialog in front of someone driving.
- * It disappears for good once both halves are granted.
+ * It gives way to the switch once both halves are granted.
  */
 @Composable
-private fun ArrivalPermissionCard() {
+private fun ArrivalPermissionCard(onGranted: () -> Unit) {
     val context = LocalContext.current
-    var granted by remember { mutableStateOf(hasArrivalPermissions(context)) }
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
-    ) { granted = hasArrivalPermissions(context) }
-
-    if (granted) return
+    ) { if (hasArrivalPermissions(context)) onGranted() }
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
