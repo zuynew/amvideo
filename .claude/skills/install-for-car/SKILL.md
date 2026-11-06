@@ -20,8 +20,9 @@ The host reads **two** fields and needs both:
 
 `adb install -i com.android.vending` sets only the second. The first comes from
 the real caller, so any sideload is `com.android.shell` and the app stays
-invisible. This was confirmed in the car: the installing package matched Tuya's
-and WhatsApp's exactly, and the launcher still enumerated 18 apps without ours.
+invisible. This was confirmed in a real car: the installing package matched that
+of apps genuinely installed from Play, and the launcher still enumerated every
+other car app on the phone without ours.
 
 **Never reach for `adb install` here.** It looks like it worked and costs a
 drive to disprove.
@@ -31,9 +32,9 @@ drive to disprove.
 Three things together, all required:
 
 1. The **system installer** performs the install, so it becomes the initiator.
-2. The **shell** launches that installer. This phone drops the Play name when an
-   app launches it — the inverted case UnknownAuto's source warns about for some
-   Android 17 builds.
+2. The **shell** launches that installer. Some Android 17 builds drop the Play
+   name when an app launches it instead — the inverted case UnknownAuto's source
+   warns about.
 3. The Play attribution rides along as four intent extras, not one.
 
 UnknownAuto (`com.mag.unknownauto`) is needed only to stage the APK behind a
@@ -93,7 +94,7 @@ Read which field is wrong; they fail for different reasons.
 - `initiating=com.android.shell` — the shell did the install itself. Something
   ran `adb install`. Redo from step 2.
 - `installing=com.google.android.packageinstaller` — the Play extra was dropped.
-  UnknownAuto's own Install button was tapped instead of step 4, or this phone
+  UnknownAuto's own Install button was tapped instead of step 4, or the phone
   wants the opposite launcher. UnknownAuto learns which path works per phone;
   let it retry and read what it prints.
 

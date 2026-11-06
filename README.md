@@ -156,8 +156,8 @@ and that "to test your app in real vehicles, you must install it from a trusted
 source such as Google Play". This app is a Car App Library app, so that toggle
 is not the answer and no manifest flag is either.
 
-This is why the app shows nothing on a Nissan Qashqai head unit even though the
-same build renders correctly in the Automotive emulator and the DHU. The
+This is why the app can show nothing on a real head unit even though the same
+build renders correctly in the Automotive emulator and the DHU. The
 manifest is not at fault; the installer is. Which is also the way out — what
 the host rejects is the *install record*, and that can be changed two ways.
 
@@ -172,13 +172,14 @@ Android Auto reads **two** fields and needs both:
 
 `adb install -i com.android.vending` sets only the second. The first is filled
 in by the system and cannot be forged, so a sideload is always
-`com.android.shell`. This was confirmed in the car: with the installing package
-matching Tuya's and WhatsApp's exactly, the launcher still enumerated 18 apps
-and ours was not among them.
+`com.android.shell`. This was confirmed in a real car: with the installing
+package matching that of apps genuinely installed from Play, the launcher still
+enumerated every other car app on the phone and ours was not among them.
 
 The way through is to let the **system installer** perform the install, so it
-becomes the initiator, while the **shell** launches it — this phone drops the
-Play name when an app launches it — with the attribution passed as extras.
+becomes the initiator, while the **shell** launches it — some Android 17 builds
+drop the Play name when an app launches it — with the attribution passed as
+extras.
 
 #### You need UnknownAuto
 
@@ -217,7 +218,7 @@ with what it claims, though it is self-signed with no reproducible build, so the
 binary cannot be proven to match the source.
 
 Its README offers a Shizuku-based path as well. **On Android 17 you do not need
-Shizuku** — that route is for Android 14 and older. On this phone the mark
+Shizuku** — that route is for Android 14 and older. There the mark
 survives only when the shell launches the installer, which `adb` does directly.
 
 #### Running the install
@@ -232,7 +233,7 @@ system installer from the shell, and prints the verdict; `push`, `install` and
 
 1. In **UnknownAuto**, tap **Load APK…** and pick `Download/amvideo-auto.apk`.
    **Do not tap UnknownAuto's own Install button** — that makes the app the
-   launcher, and this phone then records
+   launcher, and the phone then records
    `installer=com.google.android.packageinstaller` and the icon stays missing.
    Wait for *Ready* and let the script continue.
 2. Tap **Install** in the system dialog the script raises.
@@ -241,8 +242,8 @@ The script refuses to push an APK older than the sources, so a stale build
 cannot cost you the whole tap-through.
 
 Claude Code has the same thing as a skill — `/install-for-car` — which carries
-the reasoning above so it does not regress to `adb install`. Verified on a
-Pixel 8, Android 17:
+the reasoning above so it does not regress to `adb install`. Verified on
+Android 17:
 
 ```
 initiating=com.google.android.packageinstaller installing=com.android.vending androidAutoWouldAccept=true

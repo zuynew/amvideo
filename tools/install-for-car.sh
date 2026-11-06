@@ -7,13 +7,13 @@
 #
 # `adb install -i com.android.vending` sets only the second. The first is filled
 # in by the system from the real caller, so a sideload is always
-# com.android.shell and the app stays invisible in the car. Confirmed on a
-# Nissan Qashqai: the installing package matched Tuya's and WhatsApp's exactly
+# com.android.shell and the app stays invisible in the car. Confirmed in a real
+# car: the installing package matched that of apps genuinely installed from Play
 # and the launcher still never listed us.
 #
 # The way through: the SYSTEM INSTALLER performs the install, so it becomes the
-# initiator, while the SHELL launches it -- this phone drops the Play name when
-# an app launches it -- with the Play attribution passed as intent extras.
+# initiator, while the SHELL launches it -- some Android 17 builds drop the Play
+# name when an app launches it -- with the Play attribution passed as intent extras.
 # UnknownAuto is used only to stage the APK behind a content:// URI the
 # installer can read.
 #
