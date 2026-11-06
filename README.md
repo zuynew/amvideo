@@ -9,9 +9,8 @@ problem. This is an Android Auto app in Google's `IOT` category — the category
 whose documented example is, word for word, opening a garage door — so the gate
 sits on the car's screen as a tile you tap once.
 
-There is a small phone app too. It exists because Android Auto will not show a
-sign-in form while the car can move, so the account has to be set up on the
-phone; it opens doors as well, which is useful on foot.
+Sign-in happens in the companion phone app, because Android Auto will not put a
+login form in front of a driver. That app lists and opens your КПУ too.
 
 > **Unofficial.** This project is not affiliated with, endorsed by, or supported
 > by AM Video. It talks to their service the same way their own web client does,
