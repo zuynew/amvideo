@@ -12,6 +12,21 @@ sits on the car's screen as a tile you tap once.
 Sign-in happens in the companion phone app, because Android Auto will not put a
 login form in front of a driver. That app lists and opens your КПУ too.
 
+<p align="center">
+  <img src="docs/head-unit.png" alt="The КПУ list on the car screen" width="760">
+</p>
+<p align="center">
+  <em>The car screen: each КПУ a tile, one tap to open.</em>
+</p>
+
+<p align="center">
+  <img src="docs/phone.png" alt="The phone app" width="260">
+</p>
+<p align="center">
+  <em>The phone app: sign-in, the door list and the arrival switch.<br>
+  House numbers in the screenshots are blurred.</em>
+</p>
+
 > **Unofficial.** This project is not affiliated with, endorsed by, or supported
 > by AM Video. It talks to their service the same way their own web client does,
 > using your own account. You are responsible for your own account and for
