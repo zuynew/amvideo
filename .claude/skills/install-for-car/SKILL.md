@@ -37,7 +37,17 @@ Three things together, all required:
 3. The Play attribution rides along as four intent extras, not one.
 
 UnknownAuto (`com.mag.unknownauto`) is needed only to stage the APK behind a
-`content://` URI the installer can read; it is not doing the install.
+`content://` URI the installer can read; it is not doing the install. `adb`
+cannot serve such a URI, which is the whole reason a second app is involved.
+
+**Prerequisite.** If it is not installed, stop and point the user at
+[README.md](../../../README.md#you-need-unknownauto) rather than installing
+third-party software on their phone unasked. Check with:
+
+```bash
+adb shell pm list packages | grep mag.unknownauto
+adb shell appops get com.mag.unknownauto REQUEST_INSTALL_PACKAGES
+```
 
 ## Steps
 

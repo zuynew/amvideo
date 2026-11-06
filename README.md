@@ -179,17 +179,69 @@ and ours was not among them.
 The way through is to let the **system installer** perform the install, so it
 becomes the initiator, while the **shell** launches it — this phone drops the
 Play name when an app launches it — with the attribution passed as extras.
-[UnknownAuto](https://github.com/GitMag/UnknownAuto) is used only to stage the
-APK behind a `content://` URI the installer can read.
+
+#### You need UnknownAuto
+
+The system installer will only install from a `content://` URI it is allowed to
+read, and `adb` cannot serve one: a `file://` path in `/sdcard` is not readable
+by the installer, and nothing on the shell side can grant it. That one gap is
+why a second app is involved.
+
+[UnknownAuto](https://github.com/GitMag/UnknownAuto) fills it. It stages an APK
+behind its own content provider and grants the system installer read access —
+and that is the whole of its role here. It does **not** perform the install in
+this flow; the shell does, which is what keeps the Play attribution on this
+phone.
+
+Install it once, from its [releases](https://github.com/GitMag/UnknownAuto/releases):
+
+```bash
+adb install -r UnknownAuto-1.3.apk
+```
+
+It needs permission to install packages, which you can grant from the shell
+instead of hunting through Settings:
+
+```bash
+adb shell appops set com.mag.unknownauto REQUEST_INSTALL_PACKAGES allow
+```
+
+Revoke it later with `deny` in place of `allow`.
+
+It is third-party software that asks for the right to install apps, so it is
+worth a look before you trust it. Its source is three Java files, its release
+APK declares four permissions — install packages, query packages, the Shizuku
+API and internet — and the only hosts in its binary are Shizuku's GitHub
+releases, a Ko-fi link and a Play Store URL. No telemetry. That is consistent
+with what it claims, though it is self-signed with no reproducible build, so the
+binary cannot be proven to match the source.
+
+Its README offers a Shizuku-based path as well. **On Android 17 you do not need
+Shizuku** — that route is for Android 14 and older. On this phone the mark
+survives only when the shell launches the installer, which `adb` does directly.
+
+#### Running the install
 
 ```bash
 ./tools/install-for-car.sh
 ```
 
-That script does the whole sequence and prints the verdict; `push`, `install`
-and `verify` run the phases separately. Claude Code has the same thing as a
-skill — `/install-for-car` — which carries the reasoning above so it does not
-regress to `adb install`. Verified on a
+The script pushes the APK, waits while you load it in UnknownAuto, launches the
+system installer from the shell, and prints the verdict; `push`, `install` and
+`verify` run the phases separately. Two steps happen on the phone:
+
+1. In **UnknownAuto**, tap **Load APK…** and pick `Download/amvideo-auto.apk`.
+   **Do not tap UnknownAuto's own Install button** — that makes the app the
+   launcher, and this phone then records
+   `installer=com.google.android.packageinstaller` and the icon stays missing.
+   Wait for *Ready* and let the script continue.
+2. Tap **Install** in the system dialog the script raises.
+
+The script refuses to push an APK older than the sources, so a stale build
+cannot cost you the whole tap-through.
+
+Claude Code has the same thing as a skill — `/install-for-car` — which carries
+the reasoning above so it does not regress to `adb install`. Verified on a
 Pixel 8, Android 17:
 
 ```
