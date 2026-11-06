@@ -16,8 +16,9 @@ phone; it opens doors as well, which is useful on foot.
 > **Unofficial.** This project is not affiliated with, endorsed by, or supported
 > by AM Video. It talks to their service the same way their own web client does,
 > using your own account. You are responsible for your own account and for
-> whatever terms apply to it. It opens physical barriers — read
-> [Worth knowing](#worth-knowing) before you install it.
+> whatever terms apply to it. It opens physical barriers, and one tap on the car
+> screen is all it takes — there is no confirmation step, by design, because a
+> second interaction while driving is worse.
 
 ## How it talks to AM Video
 
@@ -328,36 +329,6 @@ $ANDROID_HOME/extras/google/auto/desktop-head-unit
 ```
 
 The car screen opens on the desktop, with the app in its launcher.
-
-## Worth knowing
-
-- **Arrival watching is off until you turn it on.** The switch — *Открывать КПУ
-  при подъезде* — is the first card on the phone's door list. Before location
-  and notification permissions are granted, a card asking for them stands in its
-  place instead; the switch appears once both are in. Once on, the watcher is
-  armed at boot and follows the car connection itself — you do not have to open
-  the app first.
-  It holds a standing notification for as long as it is armed, which is the price
-  of being ready without being asked; the same switch turns it off.
-- **`open` actuates a physical barrier, so nothing automated calls it.** The
-  unit tests run against a fake API and the diagnostics stick to reads. The
-  endpoint works — it is what the app does all day — it is simply not something
-  to fire off to check a change. The door list, its `latitude`/`longitude`
-  columns and `shlag_adress` were read back from a live account, which is where
-  the geofence gets its coordinates.
-- **The release build is signed with the upload key**, not the debug key. The two
-  cannot replace each other on a phone — uninstall before switching between them.
-- **One tap opens the gate.** That was deliberate — a confirmation step is a
-  second interaction while driving — but it does mean a stray tap on the car
-  screen opens your door. The 20-second cooldown is the only guard.
-- **More doors than the head unit will show are not reachable from the car.**
-  Both the grid and the list are capped by the host's own content limit, which
-  is around six while driving. With a long list the phone can still open any of
-  them; paging the car screen would be the fix if it ever matters.
-- **Panel rows carry a `cam` field the app ignores.** Showing the gate camera
-  would build on data the server already sends. The `gps` and `latitude`/
-  `longitude` columns are used — they are where the arrival geofence gets its
-  coordinates, with no map SDK involved.
 
 ## Licence
 
