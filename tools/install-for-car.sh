@@ -86,8 +86,18 @@ do_install() {
 }
 
 do_verify() {
-  local ser line
+  local ser line i
   ser=$(device) || return 1
+
+  # Play Protect scans before the package registers, so an install that is
+  # still in flight looks exactly like one that failed. Wait for it rather
+  # than report a verdict about an app that is not there yet.
+  for i in $(seq 1 30); do
+    "$ADB" -s "$ser" shell "pm list packages" 2>/dev/null | tr -d '\r' | grep -qx "package:$PKG" && break
+    [ "$i" = 30 ] && { echo "$PKG never appeared - the install did not complete" >&2; return 1; }
+    sleep 1
+  done
+
   "$ADB" -s "$ser" logcat -c
   "$ADB" -s "$ser" shell am force-stop "$PKG"
   "$ADB" -s "$ser" shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
