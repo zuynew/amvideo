@@ -52,6 +52,8 @@
     <string name="proximity_armed">Жду подключения к машине</string>
     <string name="arrival_switch">Открывать КПУ при подъезде</string>
     <string name="arrival_switch_hint">В машине нужный КПУ покажется сам. Требуется геолокация и постоянное уведомление.</string>
+    <string name="arrival_radius">За сколько метров предупреждать</string>
+    <string name="arrival_radius_value">%1$d м</string>
     <string name="proximity_arrived">В %1$d м — нажмите, чтобы открыть</string>
     <string name="permission_location_title">Открывать КПУ при подъезде</string>
     <string name="permission_location_text">Разрешите доступ к геолокации — тогда в машине нужный КПУ покажется сам, когда вы подъедете.</string>

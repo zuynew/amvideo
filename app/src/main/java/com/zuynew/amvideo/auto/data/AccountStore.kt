@@ -30,6 +30,12 @@ interface AccountStore {
      */
     var arrivalEnabled: Boolean
 
+    /**
+     * How close to a КПУ counts as arrived, in metres. Chosen by the driver from
+     * [Proximity.RADIUS_CHOICES_METERS]; it decides how late the prompt comes.
+     */
+    var arrivalRadiusMeters: Int
+
     /** Forgets the session, the credentials and the doors, but keeps [deviceKey]. */
     fun clear()
 }

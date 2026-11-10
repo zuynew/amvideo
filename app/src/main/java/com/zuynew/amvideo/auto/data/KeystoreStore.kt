@@ -91,6 +91,11 @@ class KeystoreStore(
         get() = prefs.getBoolean(KEY_ARRIVAL, false)
         set(value) = prefs.edit { putBoolean(KEY_ARRIVAL, value) }
 
+    // Not a secret either, and read on every location fix.
+    override var arrivalRadiusMeters: Int
+        get() = prefs.getInt(KEY_ARRIVAL_RADIUS, Proximity.DEFAULT_RADIUS_METERS)
+        set(value) = prefs.edit { putInt(KEY_ARRIVAL_RADIUS, value) }
+
     override var doors: List<Door>
         get() = doorsValue
         set(value) {
@@ -184,5 +189,6 @@ class KeystoreStore(
         const val KEY_PASSWORD = "password"
         const val KEY_DOORS = "doors"
         const val KEY_ARRIVAL = "arrival_enabled"
+        const val KEY_ARRIVAL_RADIUS = "arrival_radius_meters"
     }
 }

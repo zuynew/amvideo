@@ -9,6 +9,7 @@ import com.zuynew.amvideo.auto.data.Door
 import com.zuynew.amvideo.auto.data.DoorRepository
 import com.zuynew.amvideo.auto.data.DoorsResult
 import com.zuynew.amvideo.auto.data.OpenResult
+import com.zuynew.amvideo.auto.data.Proximity
 import com.zuynew.amvideo.auto.data.SignInResult
 import com.zuynew.amvideo.auto.data.normalizePhone
 import com.zuynew.amvideo.auto.R
@@ -27,6 +28,7 @@ data class UiState(
     val pinRequired: Boolean = false,
     val openingDoorKey: String? = null,
     val arrivalEnabled: Boolean = false,
+    val arrivalRadiusMeters: Int = Proximity.DEFAULT_RADIUS_METERS,
     /** Shown only when the user asks for it; it opens the doors on its own. */
     val sessionToken: String? = null,
     val notice: Notice? = null,
@@ -39,6 +41,7 @@ class MainViewModel(private val repository: DoorRepository) : ViewModel() {
             signedIn = repository.isSignedIn,
             doors = repository.cachedDoors(),
             arrivalEnabled = repository.arrivalEnabled,
+            arrivalRadiusMeters = repository.arrivalRadiusMeters,
             sessionToken = repository.sessionToken,
         ),
     )
@@ -134,6 +137,12 @@ class MainViewModel(private val repository: DoorRepository) : ViewModel() {
         repository.arrivalEnabled = enabled
         update { it.copy(arrivalEnabled = enabled) }
         return enabled
+    }
+
+    /** How close counts as arrived. Takes effect on the next location fix. */
+    fun setArrivalRadius(meters: Int) {
+        repository.arrivalRadiusMeters = meters
+        update { it.copy(arrivalRadiusMeters = meters) }
     }
 
     fun signOut() {

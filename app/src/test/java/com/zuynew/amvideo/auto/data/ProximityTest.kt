@@ -71,13 +71,22 @@ class GpsParsingTest {
 
 class ProximityTest {
 
+    /**
+     * These cases are built around a 150 m zone. Stated outright rather than
+     * leaning on the default, which is a choice the driver makes and may move.
+     */
+    private val radius = 150.0
+
+    private fun inRange(doors: List<Door>, fix: Fix): List<NearbyDoor> =
+        Proximity.inRange(doors, fix, radius)
+
     private val near = doorAt("near", NORTH_100M)
     private val far = doorAt("far", GeoPoint(ORIGIN.latitude + 0.05, ORIGIN.longitude))
     private val unlocated = doorAt("unlocated", null)
 
     @Test
     fun `only doors inside the radius count`() {
-        val result = Proximity.inRange(listOf(near, far, unlocated), Fix(ORIGIN))
+        val result = inRange(listOf(near, far, unlocated), Fix(ORIGIN))
 
         assertEquals(listOf("near"), result.map { it.door.id })
         assertEquals(100.0, result.single().distanceMeters, 2.0)
@@ -85,20 +94,20 @@ class ProximityTest {
 
     @Test
     fun `a door with no coordinates is never nearby`() {
-        assertTrue(Proximity.inRange(listOf(unlocated), Fix(ORIGIN)).isEmpty())
+        assertTrue(inRange(listOf(unlocated), Fix(ORIGIN)).isEmpty())
     }
 
     @Test
     fun `driving towards a door marks it as approached`() {
         val heading = Fix(ORIGIN, bearingDegrees = 0.0, speedMetersPerSecond = 10.0)
 
-        assertTrue(Proximity.inRange(listOf(near), heading).single().approaching)
+        assertTrue(inRange(listOf(near), heading).single().approaching)
     }
 
     @Test
     fun `driving away marks it as not approached, but keeps it listed`() {
         val leaving = Fix(ORIGIN, bearingDegrees = 180.0, speedMetersPerSecond = 10.0)
-        val result = Proximity.inRange(listOf(near), leaving)
+        val result = inRange(listOf(near), leaving)
 
         assertEquals(1, result.size)
         assertFalse(result.single().approaching)
@@ -109,20 +118,20 @@ class ProximityTest {
     fun `a heading is ignored while the car is barely moving`() {
         val parked = Fix(ORIGIN, bearingDegrees = 180.0, speedMetersPerSecond = 0.05)
 
-        assertTrue(Proximity.inRange(listOf(near), parked).single().approaching)
+        assertTrue(inRange(listOf(near), parked).single().approaching)
     }
 
     @Test
     fun `a heading with no speed reading is still trusted`() {
         val noSpeed = Fix(ORIGIN, bearingDegrees = 180.0, speedMetersPerSecond = null)
 
-        assertFalse(Proximity.inRange(listOf(near), noSpeed).single().approaching)
+        assertFalse(inRange(listOf(near), noSpeed).single().approaching)
     }
 
     @Test
     fun `the speed floor is a boundary, not an approximation`() {
         fun approachingAtSpeed(speed: Double) =
-            Proximity.inRange(listOf(near), Fix(ORIGIN, 180.0, speed)).single().approaching
+            inRange(listOf(near), Fix(ORIGIN, 180.0, speed)).single().approaching
 
         // Driving away: at the floor the heading counts, below it it is noise.
         assertFalse(approachingAtSpeed(Fix.MIN_SPEED_FOR_BEARING))
@@ -132,7 +141,7 @@ class ProximityTest {
     @Test
     fun `the approach tolerance is forty-five degrees either side`() {
         fun approachingAt(bearing: Double) =
-            Proximity.inRange(listOf(near), Fix(ORIGIN, bearing, 10.0)).single().approaching
+            inRange(listOf(near), Fix(ORIGIN, bearing, 10.0)).single().approaching
 
         // The door is due north, so a heading within 45 degrees of north counts.
         assertTrue(approachingAt(44.0))
@@ -147,10 +156,26 @@ class ProximityTest {
         val behind = doorAt("behind", GeoPoint(ORIGIN.latitude - 0.0002, ORIGIN.longitude))
         val northbound = Fix(ORIGIN, bearingDegrees = 0.0, speedMetersPerSecond = 10.0)
 
-        val result = Proximity.inRange(listOf(behind, ahead), northbound)
+        val result = inRange(listOf(behind, ahead), northbound)
 
         // "behind" is nearer, but the car is driving away from it.
         assertEquals(listOf("ahead", "behind"), result.map { it.door.id })
+    }
+
+    @Test
+    fun `the default radius is fifty metres`() {
+        // 100 m away: outside the default zone, inside a wider one.
+        assertTrue(Proximity.inRange(listOf(near), Fix(ORIGIN)).isEmpty())
+        assertEquals(1, Proximity.inRange(listOf(near), Fix(ORIGIN), 150.0).size)
+    }
+
+    @Test
+    fun `the offered choices include the default`() {
+        assertTrue(Proximity.DEFAULT_RADIUS_METERS in Proximity.RADIUS_CHOICES_METERS)
+        assertEquals(
+            Proximity.RADIUS_CHOICES_METERS.sorted(),
+            Proximity.RADIUS_CHOICES_METERS,
+        )
     }
 }
 
@@ -158,10 +183,11 @@ class ProximityTrackerTest {
 
     private val door = doorAt("1", NORTH_100M)
     private val tracker = ProximityTracker()
+    private val radius = 150.0
 
     /** Announcing is the caller's job, so the test does what the service does. */
     private fun arrive(doors: List<Door> = listOf(door), from: GeoPoint = ORIGIN) =
-        tracker.update(doors, Fix(from))
+        tracker.update(doors, Fix(from), radius)
 
     @Test
     fun `arriving offers the door once, not on every fix`() {
@@ -184,9 +210,9 @@ class ProximityTrackerTest {
         val other = doorAt("2", GeoPoint(ORIGIN.latitude + 0.0005, ORIGIN.longitude))
         val doors = listOf(door, other)
 
-        val first = tracker.update(doors, Fix(ORIGIN))
+        val first = tracker.update(doors, Fix(ORIGIN), radius)
         tracker.markAnnounced(first.candidates.first().door)
-        val second = tracker.update(doors, Fix(ORIGIN))
+        val second = tracker.update(doors, Fix(ORIGIN), radius)
 
         assertEquals(2, first.candidates.size)
         assertEquals(
@@ -225,5 +251,14 @@ class ProximityTrackerTest {
         arrive(doors = emptyList())
 
         assertEquals(listOf("1"), arrive().candidates.map { it.door.id })
+    }
+
+    /** The whole point of the setting: it must bite without restarting anything. */
+    @Test
+    fun `a radius change takes effect on the very next fix`() {
+        val doors = listOf(door)
+
+        assertTrue(tracker.update(doors, Fix(ORIGIN), 50.0).inRange.isEmpty())
+        assertEquals(1, tracker.update(doors, Fix(ORIGIN), 150.0).inRange.size)
     }
 }

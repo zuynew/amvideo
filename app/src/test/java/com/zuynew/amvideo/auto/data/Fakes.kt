@@ -9,6 +9,7 @@ class FakeStore : AccountStore {
     override var password: String? = null
     override var doors: List<Door> = emptyList()
     override var arrivalEnabled: Boolean = false
+    override var arrivalRadiusMeters: Int = Proximity.DEFAULT_RADIUS_METERS
 
     var cleared = false
 

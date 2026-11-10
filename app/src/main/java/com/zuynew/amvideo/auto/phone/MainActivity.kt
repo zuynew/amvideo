@@ -45,6 +45,8 @@ class MainActivity : ComponentActivity() {
                                 DoorProximityService.stop(this)
                             }
                         },
+                        // No restart needed: the watcher reads the radius on each fix.
+                        onArrivalRadius = viewModel::setArrivalRadius,
                         onOpen = viewModel::open,
                         onRefresh = viewModel::refresh,
                         onSignOut = viewModel::signOut,

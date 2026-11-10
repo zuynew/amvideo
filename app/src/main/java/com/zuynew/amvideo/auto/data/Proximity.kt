@@ -20,10 +20,19 @@ data class NearbyDoor(
 object Proximity {
 
     /**
-     * Far enough to catch the car as it turns into the approach, close enough not
-     * to match a gate on the next street.
+     * How close counts as arrived, unless the driver picks otherwise.
+     *
+     * 50 m is roughly the last few seconds of the approach at town speed, which
+     * is when the prompt is wanted. A wider radius fires while merely driving
+     * past, which is what it used to do.
      */
-    const val RADIUS_METERS = 150.0
+    const val DEFAULT_RADIUS_METERS = 50
+
+    /**
+     * What the phone offers. Whole metres: the driver is choosing how late the
+     * prompt arrives, not calibrating anything.
+     */
+    val RADIUS_CHOICES_METERS = listOf(50, 100, 150, 300)
 
     /** How far off a straight line to the door still counts as heading for it. */
     const val APPROACH_TOLERANCE_DEGREES = 45.0
@@ -35,11 +44,15 @@ object Proximity {
     const val RELEASE_FACTOR = 2.0
 
     /**
-     * @return every door within [RADIUS_METERS] of [fix], the ones being driven
+     * @return every door within [radiusMeters] of [fix], the ones being driven
      *   towards first and nearest first within that. Doors with no coordinates are
      *   never included — there is no way to tell where they are.
      */
-    fun inRange(doors: List<Door>, fix: Fix, radiusMeters: Double = RADIUS_METERS): List<NearbyDoor> =
+    fun inRange(
+        doors: List<Door>,
+        fix: Fix,
+        radiusMeters: Double = DEFAULT_RADIUS_METERS.toDouble(),
+    ): List<NearbyDoor> =
         doors.mapNotNull { door -> door.nearbyOrNull(fix, radiusMeters) }
             .sortedWith(compareByDescending<NearbyDoor> { it.approaching }.thenBy { it.distanceMeters })
 
@@ -66,7 +79,7 @@ object Proximity {
  * has driven [Proximity.RELEASE_FACTOR] radii away, well outside the jitter of a
  * stationary fix.
  */
-class ProximityTracker(private val radiusMeters: Double = Proximity.RADIUS_METERS) {
+class ProximityTracker {
 
     private val announced = mutableSetOf<String>()
 
@@ -83,7 +96,11 @@ class ProximityTracker(private val radiusMeters: Double = Proximity.RADIUS_METER
         val candidates: List<NearbyDoor>,
     )
 
-    fun update(doors: List<Door>, fix: Fix): Update {
+    fun update(
+        doors: List<Door>,
+        fix: Fix,
+        radiusMeters: Double = Proximity.DEFAULT_RADIUS_METERS.toDouble(),
+    ): Update {
         // Anything no longer within the wider release radius is armed again. Doors
         // that have vanished from the list entirely drop out here too, rather than
         // keeping their flag for ever.

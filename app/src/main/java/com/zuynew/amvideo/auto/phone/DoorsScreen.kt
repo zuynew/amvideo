@@ -25,6 +25,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -53,6 +54,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.zuynew.amvideo.auto.R
 import com.zuynew.amvideo.auto.data.Door
+import com.zuynew.amvideo.auto.data.Proximity
 import com.zuynew.amvideo.auto.proximity.DoorProximityService
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,6 +62,7 @@ import com.zuynew.amvideo.auto.proximity.DoorProximityService
 fun DoorsScreen(
     state: UiState,
     onArrivalEnabled: (Boolean) -> Unit,
+    onArrivalRadius: (Int) -> Unit,
     onOpen: (Door) -> Unit,
     onRefresh: () -> Unit,
     onSignOut: () -> Unit,
@@ -101,7 +104,14 @@ fun DoorsScreen(
                     // Exactly one of these: the card until both permissions are
                     // in, the switch afterwards.
                     if (arrivalGranted) {
-                        item { ArrivalSwitch(state.arrivalEnabled, onArrivalEnabled) }
+                        item {
+                            ArrivalSwitch(
+                                enabled = state.arrivalEnabled,
+                                radiusMeters = state.arrivalRadiusMeters,
+                                onChange = onArrivalEnabled,
+                                onRadius = onArrivalRadius,
+                            )
+                        }
                     } else {
                         item { ArrivalPermissionCard(onGranted = { arrivalGranted = true }) }
                     }
@@ -185,27 +195,53 @@ private fun rememberArrivalPermissions(): MutableState<Boolean> {
  * armed, so leaving the driver no way to turn it off would not be acceptable.
  */
 @Composable
-private fun ArrivalSwitch(enabled: Boolean, onChange: (Boolean) -> Unit) {
+private fun ArrivalSwitch(
+    enabled: Boolean,
+    radiusMeters: Int,
+    onChange: (Boolean) -> Unit,
+    onRadius: (Int) -> Unit,
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 12.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.arrival_switch),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Text(
-                    text = stringResource(R.string.arrival_switch_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                )
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 12.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.arrival_switch),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = stringResource(R.string.arrival_switch_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                Switch(checked = enabled, onCheckedChange = onChange)
             }
-            Switch(checked = enabled, onCheckedChange = onChange)
+
+            // Only while the feature is on: choosing how late a prompt arrives is
+            // meaningless when no prompt is coming.
+            if (enabled) {
+                Text(
+                    text = stringResource(R.string.arrival_radius),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+                Row(
+                    modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Proximity.RADIUS_CHOICES_METERS.forEach { meters ->
+                        FilterChip(
+                            selected = meters == radiusMeters,
+                            onClick = { onRadius(meters) },
+                            label = { Text(stringResource(R.string.arrival_radius_value, meters)) },
+                        )
+                    }
+                }
+            }
         }
     }
 }

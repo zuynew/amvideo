@@ -128,6 +128,16 @@ class DoorRepository(
             store.arrivalEnabled = value
         }
 
+    /**
+     * How close counts as arrived, in metres. Read on every location fix, so a
+     * change takes effect on the drive it is made, not the next one.
+     */
+    var arrivalRadiusMeters: Int
+        get() = store.arrivalRadiusMeters
+        set(value) {
+            store.arrivalRadiusMeters = value
+        }
+
     /** The last known doors, available without touching the network. */
     fun cachedDoors(): List<Door> = store.doors
 

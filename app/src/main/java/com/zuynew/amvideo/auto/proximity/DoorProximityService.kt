@@ -19,7 +19,6 @@ import androidx.lifecycle.LifecycleService
 import com.zuynew.amvideo.auto.OpenerApp
 import com.zuynew.amvideo.auto.data.Fix
 import com.zuynew.amvideo.auto.data.GeoPoint
-import com.zuynew.amvideo.auto.data.Proximity
 import com.zuynew.amvideo.auto.data.ProximityTracker
 
 /**
@@ -174,7 +173,10 @@ class DoorProximityService : LifecycleService() {
     }
 
     private fun onFix(location: Location) {
-        if (!shouldUse(location)) return
+        // Read once per fix rather than held: the driver can change the radius on
+        // the phone mid-drive, and the next fix should already use it.
+        val radiusMeters = radiusMeters()
+        if (!shouldUse(location, radiusMeters)) return
         lastUsedFix = location
 
         val doors = OpenerApp.repositoryOf(this).cachedDoors()
@@ -187,6 +189,7 @@ class DoorProximityService : LifecycleService() {
                 bearingDegrees = location.bearing.toDouble().takeIf { location.hasBearing() },
                 speedMetersPerSecond = location.speed.toDouble().takeIf { location.hasSpeed() },
             ),
+            radiusMeters = radiusMeters,
         )
 
         OpenerApp.proximityOf(this).set(update.inRange)
@@ -202,6 +205,9 @@ class DoorProximityService : LifecycleService() {
         }
     }
 
+    private fun radiusMeters(): Double =
+        OpenerApp.repositoryOf(this).arrivalRadiusMeters.toDouble()
+
     /** A gate left behind must not leave a live Открыть button in the car. */
     private fun withdrawDepartedNotifications(stillInRange: Set<String>) {
         val departed = posted - stillInRange
@@ -214,8 +220,8 @@ class DoorProximityService : LifecycleService() {
      * overrule a fresh GPS fix would flip a door in and out of range, re-announcing
      * it and yanking the car screen about.
      */
-    private fun shouldUse(location: Location): Boolean {
-        if (location.hasAccuracy() && location.accuracy > Proximity.RADIUS_METERS) return false
+    private fun shouldUse(location: Location, radiusMeters: Double): Boolean {
+        if (location.hasAccuracy() && location.accuracy > radiusMeters) return false
 
         val previous = lastUsedFix ?: return true
         if (location.provider == LocationManager.GPS_PROVIDER) return true
