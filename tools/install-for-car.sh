@@ -58,7 +58,8 @@ do_push() {
   # Refuse a build older than the sources. Installing a stale APK costs a full
   # tap-through on the phone and tests nothing; it has happened once already,
   # and the only clue was a byte-identical file size.
-  stale=$(find app/src \( -name '*.kt' -o -name '*.xml' \) -newer "$apk" 2>/dev/null | head -3)
+  # Only main sources: a newer test file does not change what is in the APK.
+  stale=$(find app/src/main \( -name '*.kt' -o -name '*.xml' \) -newer "$apk" 2>/dev/null | head -3)
   if [ -n "$stale" ]; then
     echo "APK is older than these sources - rebuild first:" >&2
     echo "$stale" | sed 's/^/  /' >&2
